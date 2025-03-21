@@ -58,6 +58,7 @@
       display: none;
     }
 
+    /* Overlay Box - Now properly formatted */
     #scan-overlay {
       position: absolute;
       top: 60%;
@@ -70,6 +71,7 @@
       transform: translate(-50%, -50%);
       display: none;
       z-index: 20;
+      touch-action: none;
     }
 
     #close-overlay {
@@ -87,32 +89,56 @@
       cursor: pointer;
     }
 
+    /* Properly formatted nutrition bars */
+    .nutrition-bar-container {
+      width: 100%;
+      margin: 10px 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nutrition-label {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-align: left;
+    }
+
     .nutrition-bar {
       width: 100%;
-      height: 20px;
+      height: 25px;
       background: lightgray;
       border: 2px solid black;
       position: relative;
-      margin-top: 10px;
+      display: flex;
+      align-items: center;
     }
 
     .nutrition-fill {
       height: 100%;
       position: absolute;
+      left: 0;
     }
 
-    .nutrient-label {
+    .bar-text {
+      position: relative;
       font-size: 14px;
-      color: black;
-      position: absolute;
-      left: 5px;
-      top: -18px;
+      color: white;
+      font-weight: bold;
+      width: 100%;
+      text-align: center;
+      z-index: 5;
     }
 
+    /* Sections */
     .bar-section {
       position: absolute;
       height: 100%;
       border-left: 2px solid black;
+      font-size: 12px;
+      color: black;
+      font-weight: bold;
+      padding-left: 3px;
     }
   </style>
 </head>
@@ -182,16 +208,22 @@
 
         if (!data.product) throw new Error("Product not found");
 
-        const nutriments = data.product.nutriments;
         productName.innerText = data.product.product_name || "Unknown Product";
         nutritionContainer.innerHTML = '';
 
         for (const nutrient in recommendedLimits) {
           const key = `${nutrient}_100g`;
-          const actual = parseFloat(nutriments[key]) || 0;
+          const actual = parseFloat(data.product.nutriments[key]) || 0;
           const limit = recommendedLimits[nutrient];
 
           // Create bar visualization
+          const barContainer = document.createElement("div");
+          barContainer.className = "nutrition-bar-container";
+
+          const label = document.createElement("div");
+          label.className = "nutrition-label";
+          label.innerText = `${nutrient.replace('-', ' ')}: ${actual}g`;
+
           const bar = document.createElement("div");
           bar.className = "nutrition-bar";
 
@@ -200,38 +232,20 @@
           fill.style.width = `${(actual / limit) * 100}%`;
           fill.style.background = actual > limit ? "red" : "green";
 
-          const label = document.createElement("div");
-          label.className = "nutrient-label";
-          label.innerText = `${nutrient.replace('-', ' ')}: ${actual}g`;
-
-          // Sections for limits
-          const section1 = document.createElement("div");
-          section1.className = "bar-section";
-          section1.style.left = "33%";
-          section1.innerText = "recommended";
-
-          const section2 = document.createElement("div");
-          section2.className = "bar-section";
-          section2.style.left = "66%";
-          section2.innerText = "harmful but okay";
-
-          const section3 = document.createElement("div");
-          section3.className = "bar-section";
-          section3.style.left = "100%";
-          section3.innerText = "too much";
+          const barText = document.createElement("div");
+          barText.className = "bar-text";
+          barText.innerText = `${actual}g`;
 
           bar.appendChild(fill);
-          bar.appendChild(section1);
-          bar.appendChild(section2);
-          bar.appendChild(section3);
-          nutritionContainer.appendChild(label);
-          nutritionContainer.appendChild(bar);
+          bar.appendChild(barText);
+          barContainer.appendChild(label);
+          barContainer.appendChild(bar);
+          nutritionContainer.appendChild(barContainer);
         }
 
         scanOverlay.style.display = 'block';
 
       } catch (err) {
-        console.error("Error fetching data:", err);
         alert("Could not retrieve nutrition info.");
       }
     }
