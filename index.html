@@ -44,19 +44,23 @@
     }
     #scan-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
+      top: 50%;
+      left: 50%;
+      width: 300px;
+      height: 200px;
+      transform: translate(-50%, -50%) perspective(1000px) rotateX(5deg) rotateY(-5deg);
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 15px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
       display: none;
       justify-content: center;
       align-items: center;
       text-align: center;
-      font-size: 24px;
-      color: black;
+      font-size: 20px;
       font-weight: bold;
+      color: #333;
+      z-index: 10;
     }
   </style>
 </head>
