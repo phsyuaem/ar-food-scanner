@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>AR Food Scanner</title>
   <style>
+    /* Ensure fullscreen layout */
     html, body {
       margin: 0;
       padding: 0;
@@ -15,11 +16,29 @@
       font-family: sans-serif;
     }
 
-    body {
+    /* Ensure camera fills the entire screen */
+    #reader {
+      width: 100vw !important;
+      height: 100vh !important;
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      display: block;
     }
 
+    /* Force the <video> element from html5-qrcode to be fullscreen */
+    #reader video {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important; /* Ensures video covers the screen */
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Open Camera button */
     #start-btn {
       position: absolute;
       top: 50%;
@@ -34,6 +53,7 @@
       border-radius: 10px;
     }
 
+    /* Scanner text overlay */
     #overlay-text {
       position: absolute;
       top: 10px;
@@ -45,16 +65,21 @@
       display: none;
     }
 
-    #reader {
-      width: 100vw;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
-      display: none;
-      z-index: 1;
+    /* Scanner box (helps align barcode) */
+    #scanner-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 250px;
+      height: 100px;
+      border: 3px solid white;
+      border-radius: 10px;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+      z-index: 10;
     }
 
+    /* Scanned item overlay (3D-style effect) */
     #scan-overlay {
       position: absolute;
       top: 50%;
@@ -77,6 +102,7 @@
       animation: popIn 0.4s ease-out;
     }
 
+    /* Pop-in animation for the overlay */
     @keyframes popIn {
       0% {
         transform: translate(-50%, -50%) scale(0.8) rotateX(10deg) rotateY(-10deg);
@@ -94,9 +120,10 @@
   <button id="start-btn">Open Camera</button>
   <div id="overlay-text">Scan a food item barcode</div>
   <div id="reader"></div>
+  <div id="scanner-box"></div> <!-- Scanner box for alignment -->
   <div id="scan-overlay">🍎 Item Scanned!</div>
 
-  <!-- HTML5 QR Code -->
+  <!-- HTML5 QR Code Scanner -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
   <script>
@@ -104,11 +131,13 @@
     const overlayText = document.getElementById('overlay-text');
     const readerDiv = document.getElementById('reader');
     const scanOverlay = document.getElementById('scan-overlay');
+    const scannerBox = document.getElementById('scanner-box');
 
     startBtn.addEventListener('click', () => {
       startBtn.style.display = 'none';
       overlayText.style.display = 'block';
       readerDiv.style.display = 'block';
+      scannerBox.style.display = 'block';
       initScanner();
     });
 
@@ -125,13 +154,17 @@
           // Show overlay box
           scanOverlay.style.display = 'flex';
 
-          // Hide after 3 seconds
+          // Hide scanner box after scanning
+          scannerBox.style.display = 'none';
+
+          // Hide overlay after 3 seconds
           setTimeout(() => {
             scanOverlay.style.display = 'none';
+            scannerBox.style.display = 'block'; // Reset scanner box visibility
           }, 3000);
         },
         (errorMessage) => {
-          // Optional: show scanner error
+          // Optional: Handle scanning errors here
         }
       ).catch(err => {
         console.error(err);
