@@ -9,7 +9,6 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: black;
       font-family: sans-serif;
     }
     #start-btn {
@@ -38,41 +37,50 @@
     #reader {
       width: 100vw;
       height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
       display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
     }
-    canvas {
+    #scan-overlay {
       position: absolute;
       top: 0;
       left: 0;
-      z-index: 5;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 24px;
+      color: black;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-<button id="start-btn">Open Camera</button>
+<button id="start-btn">Open</button>
 <div id="overlay-text">Scan a food item barcode</div>
 <div id="reader"></div>
+<div id="scan-overlay">Overlay Effect</div>
 
 <!-- HTML5 QR Code -->
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-<!-- Three.js for 3D rendering -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 
 <script>
   const startBtn = document.getElementById('start-btn');
   const overlayText = document.getElementById('overlay-text');
   const readerDiv = document.getElementById('reader');
+  const scanOverlay = document.getElementById('scan-overlay');
 
   startBtn.addEventListener('click', () => {
     startBtn.style.display = 'none';
     overlayText.style.display = 'block';
     readerDiv.style.display = 'block';
     initScanner();
-    init3DBox();
   });
 
   function initScanner() {
@@ -80,15 +88,19 @@
     html5QrCode.start(
       { facingMode: "environment" },
       {
-        fps: 10,
-        qrbox: { width: 250, height: 250 }
+        fps: 10
       },
       (decodedText, decodedResult) => {
         console.log("Scanned: " + decodedText);
         overlayText.textContent = `Scanned: ${decodedText}`;
-        // You can now call OpenFoodFacts API here using the barcode
-        // For demo, we just show the box
-        show3DBox = true;
+        
+        // Show the overlay effect
+        scanOverlay.style.display = 'flex';
+
+        // Hide overlay after 3 seconds
+        setTimeout(() => {
+          scanOverlay.style.display = 'none';
+        }, 3000);
       },
       (errorMessage) => {
         // Ignore scan errors for now
@@ -96,34 +108,6 @@
     ).catch(err => {
       console.error(err);
     });
-  }
-
-  // ========== Three.js 3D Box Overlay ==========
-  let show3DBox = false;
-
-  function init3DBox() {
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
-
-    camera.position.z = 3;
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (show3DBox) {
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
-      }
-      renderer.render(scene, camera);
-    }
-    animate();
   }
 </script>
 
