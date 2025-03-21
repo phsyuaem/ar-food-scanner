@@ -2,15 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>AR Food Scanner</title>
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
+      width: 100%;
       overflow: hidden;
+      background: black;
       font-family: sans-serif;
     }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
     #start-btn {
       position: absolute;
       top: 50%;
@@ -24,6 +33,7 @@
       color: #000;
       border-radius: 10px;
     }
+
     #overlay-text {
       position: absolute;
       top: 10px;
@@ -34,6 +44,7 @@
       z-index: 10;
       display: none;
     }
+
     #reader {
       width: 100vw;
       height: 100vh;
@@ -41,7 +52,9 @@
       top: 0;
       left: 0;
       display: none;
+      z-index: 1;
     }
+
     #scan-overlay {
       position: absolute;
       top: 50%;
@@ -61,59 +74,70 @@
       font-weight: bold;
       color: #333;
       z-index: 10;
+      animation: popIn 0.4s ease-out;
+    }
+
+    @keyframes popIn {
+      0% {
+        transform: translate(-50%, -50%) scale(0.8) rotateX(10deg) rotateY(-10deg);
+        opacity: 0;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1) rotateX(5deg) rotateY(-5deg);
+        opacity: 1;
+      }
     }
   </style>
 </head>
 <body>
 
-<button id="start-btn">Open</button>
-<div id="overlay-text">Scan a food item barcode</div>
-<div id="reader"></div>
-<div id="scan-overlay">Overlay Effect</div>
+  <button id="start-btn">Open Camera</button>
+  <div id="overlay-text">Scan a food item barcode</div>
+  <div id="reader"></div>
+  <div id="scan-overlay">🍎 Item Scanned!</div>
 
-<!-- HTML5 QR Code -->
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- HTML5 QR Code -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-<script>
-  const startBtn = document.getElementById('start-btn');
-  const overlayText = document.getElementById('overlay-text');
-  const readerDiv = document.getElementById('reader');
-  const scanOverlay = document.getElementById('scan-overlay');
+  <script>
+    const startBtn = document.getElementById('start-btn');
+    const overlayText = document.getElementById('overlay-text');
+    const readerDiv = document.getElementById('reader');
+    const scanOverlay = document.getElementById('scan-overlay');
 
-  startBtn.addEventListener('click', () => {
-    startBtn.style.display = 'none';
-    overlayText.style.display = 'block';
-    readerDiv.style.display = 'block';
-    initScanner();
-  });
-
-  function initScanner() {
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      {
-        fps: 10
-      },
-      (decodedText, decodedResult) => {
-        console.log("Scanned: " + decodedText);
-        overlayText.textContent = `Scanned: ${decodedText}`;
-        
-        // Show the overlay effect
-        scanOverlay.style.display = 'flex';
-
-        // Hide overlay after 3 seconds
-        setTimeout(() => {
-          scanOverlay.style.display = 'none';
-        }, 3000);
-      },
-      (errorMessage) => {
-        // Ignore scan errors for now
-      }
-    ).catch(err => {
-      console.error(err);
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = 'none';
+      overlayText.style.display = 'block';
+      readerDiv.style.display = 'block';
+      initScanner();
     });
-  }
-</script>
+
+    function initScanner() {
+      const html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10 },
+        (decodedText, decodedResult) => {
+          console.log("Scanned: " + decodedText);
+          overlayText.textContent = `Scanned: ${decodedText}`;
+
+          // Show overlay box
+          scanOverlay.style.display = 'flex';
+
+          // Hide after 3 seconds
+          setTimeout(() => {
+            scanOverlay.style.display = 'none';
+          }, 3000);
+        },
+        (errorMessage) => {
+          // Optional: show scanner error
+        }
+      ).catch(err => {
+        console.error(err);
+      });
+    }
+  </script>
 
 </body>
 </html>
