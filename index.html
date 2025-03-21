@@ -65,7 +65,7 @@
       display: none;
     }
 
-    /* Scanner box (Hidden initially, shown after clicking Open Camera) */
+    /* Scanner box (No blur now, just a simple alignment box) */
     #scanner-box {
       position: absolute;
       top: 50%;
@@ -77,9 +77,8 @@
       transform: translate(-50%, -50%);
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       z-index: 10;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(5px);
-      display: none; /* Initially hidden */
+      background: transparent; /* No blur effect */
+      display: none;
     }
 
     /* Draggable and Resizable Overlay (After Scan) */
@@ -202,45 +201,53 @@
       });
     }
 
-    // ========== Dragging the Overlay ==========
-    scanOverlay.addEventListener("mousedown", (e) => {
-      if (e.target === resizeHandle) return;
+    // ========== Dragging the Overlay (Touch & Mouse) ==========
+    scanOverlay.addEventListener("touchstart", startDrag);
+    scanOverlay.addEventListener("mousedown", startDrag);
+
+    function startDrag(e) {
+      e.preventDefault();
       isDragging = true;
-      offsetX = e.clientX - scanOverlay.getBoundingClientRect().left;
-      offsetY = e.clientY - scanOverlay.getBoundingClientRect().top;
-    });
+      offsetX = (e.touches ? e.touches[0].clientX : e.clientX) - scanOverlay.getBoundingClientRect().left;
+      offsetY = (e.touches ? e.touches[0].clientY : e.clientY) - scanOverlay.getBoundingClientRect().top;
+    }
 
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        scanOverlay.style.left = `${e.clientX - offsetX}px`;
-        scanOverlay.style.top = `${e.clientY - offsetY}px`;
-      }
-    });
+    document.addEventListener("touchmove", dragOverlay);
+    document.addEventListener("mousemove", dragOverlay);
 
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-    });
+    function dragOverlay(e) {
+      if (!isDragging) return;
+      scanOverlay.style.left = `${(e.touches ? e.touches[0].clientX : e.clientX) - offsetX}px`;
+      scanOverlay.style.top = `${(e.touches ? e.touches[0].clientY : e.clientY) - offsetY}px`;
+    }
+
+    document.addEventListener("touchend", () => isDragging = false);
+    document.addEventListener("mouseup", () => isDragging = false);
 
     // ========== Resizing the Overlay ==========
-    resizeHandle.addEventListener("mousedown", (e) => {
+    resizeHandle.addEventListener("touchstart", startResize);
+    resizeHandle.addEventListener("mousedown", startResize);
+
+    function startResize(e) {
       isResizing = true;
       startWidth = scanOverlay.offsetWidth;
       startHeight = scanOverlay.offsetHeight;
-      offsetX = e.clientX;
-      offsetY = e.clientY;
+      offsetX = e.touches ? e.touches[0].clientX : e.clientX;
+      offsetY = e.touches ? e.touches[0].clientY : e.clientY;
       e.preventDefault();
-    });
+    }
 
-    document.addEventListener("mousemove", (e) => {
-      if (isResizing) {
-        scanOverlay.style.width = `${startWidth + (e.clientX - offsetX)}px`;
-        scanOverlay.style.height = `${startHeight + (e.clientY - offsetY)}px`;
-      }
-    });
+    document.addEventListener("touchmove", resizeOverlay);
+    document.addEventListener("mousemove", resizeOverlay);
 
-    document.addEventListener("mouseup", () => {
-      isResizing = false;
-    });
+    function resizeOverlay(e) {
+      if (!isResizing) return;
+      scanOverlay.style.width = `${startWidth + ((e.touches ? e.touches[0].clientX : e.clientX) - offsetX)}px`;
+      scanOverlay.style.height = `${startHeight + ((e.touches ? e.touches[0].clientY : e.clientY) - offsetY)}px`;
+    }
+
+    document.addEventListener("touchend", () => isResizing = false);
+    document.addEventListener("mouseup", () => isResizing = false);
   </script>
 
 </body>
