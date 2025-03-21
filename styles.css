@@ -1,27 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>AR Food Scanner</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+/* General Reset */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-  <button id="start-btn">Open Camera</button>
-  <div id="overlay-text">Scan a food item barcode</div>
-  <div id="reader"></div>
-  <div id="scanner-box"></div>
+/* Start Button */
+#start-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 20px;
+    font-size: 16px;
+    background: #00ff8c;
+    color: black;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 10;
+}
 
-  <div id="scan-overlay">
-    <div id="close-overlay">✖</div>
-    <h3 id="product-name">Loading...</h3>
-    <div id="nutrition-container"></div>
-    <div class="resize-handle"></div>
-  </div>
+/* Overlay Text */
+#overlay-text {
+    position: absolute;
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 20px;
+    z-index: 10;
+    display: none;
+}
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="script.js"></script>
-</body>
-</html>
+/* Scanner Box */
+#scanner-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 250px;
+    height: 100px;
+    transform: translate(-50%, -50%);
+    border: 3px solid white;
+    z-index: 10;
+    display: none;
+}
+
+/* Reader */
+#reader {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: none;
+}
+
+/* Overlay Box */
+#overlay-box {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    width: 90%;
+    min-width: 250px;
+    min-height: 150px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transform: translate(-50%, -50%);
+    display: none;
+    z-index: 20;
+    touch-action: none;
+    cursor: grab;
+}
+
+/* Close Button */
+#close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: red;
+    color: white;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    text-align: center;
+    font-weight: bold;
+    line-height: 25px;
+    cursor: pointer;
+}
+
+/* Resize Handle */
+.resize-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: black;
+    border-radius: 50%;
+    bottom: -8px;
+    right: -9px;
+    cursor: nwse-resize;
+    z-index: 25;
+}
+
+/* Nutrition Bars */
+.nutrition-bar-container {
+    width: 100%;
+    margin: 10px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.nutrition-label {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Updated Look for Bars */
+.nutrition-bar {
+    width: 100%;
+    height: 14px;
+    border: 2px solid black;
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Sections */
+.nutrition-bar .section {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: lighter;
+    color: black;
+    border-right: 2px solid black;
+}
+
+/* Recommended */
+.nutrition-bar .section:nth-child(1) {
+    background: #C89C6C;
+    left: 0;
+    width: 33%;
+}
+
+/* Harmful but Okay */
+.nutrition-bar .section:nth-child(2) {
+    background: #8cff1a;
+    left: 33%;
+    width: 33%;
+}
+
+/* Harmful */
+.nutrition-bar .section:nth-child(3) {
+    background: #8A5F36;
+    left: 66%;
+    width: 34%;
+    border-right: none;
+}
