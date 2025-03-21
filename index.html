@@ -27,7 +27,7 @@
       display: none;
     }
 
-    /* Force the <video> element from html5-qrcode to be fullscreen */
+    /* Force the <video> element inside html5-qrcode to be fullscreen */
     #reader video {
       width: 100vw !important;
       height: 100vh !important;
@@ -65,7 +65,7 @@
       display: none;
     }
 
-    /* Draggable and Resizable Overlay */
+    /* Scanner box (Fixed for barcode alignment) */
     #scanner-box {
       position: absolute;
       top: 50%;
@@ -79,13 +79,33 @@
       z-index: 10;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(5px);
-      display: none; /* Initially hidden */
+    }
+
+    /* Draggable and Resizable Overlay (After Scan) */
+    #scan-overlay {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      width: 200px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform: translate(-50%, -50%);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: black;
+      z-index: 20;
       cursor: grab;
       touch-action: none;
     }
 
-    /* Close button for scanner box */
-    #close-btn {
+    /* Close button for overlay */
+    #close-overlay {
       position: absolute;
       top: -10px;
       right: -10px;
@@ -99,7 +119,7 @@
       line-height: 25px;
       cursor: pointer;
       font-weight: bold;
-      z-index: 15;
+      z-index: 25;
     }
 
     /* Resizing handle */
@@ -107,12 +127,12 @@
       position: absolute;
       width: 15px;
       height: 15px;
-      background: white;
+      background: black;
       border-radius: 50%;
       bottom: -8px;
       right: -8px;
       cursor: nwse-resize;
-      z-index: 20;
+      z-index: 25;
     }
   </style>
 </head>
@@ -122,9 +142,13 @@
   <div id="overlay-text">Scan a food item barcode</div>
   <div id="reader"></div>
 
-  <!-- Scanner box (Draggable, Resizable) -->
-  <div id="scanner-box">
-    <div id="close-btn">✖</div>
+  <!-- Scanner Box (Static for Barcode Alignment) -->
+  <div id="scanner-box"></div>
+
+  <!-- Draggable & Resizable Overlay (Appears after scan) -->
+  <div id="scan-overlay">
+    <div id="close-overlay">✖</div>
+    🍎 Scanned Item
     <div class="resize-handle"></div>
   </div>
 
@@ -135,8 +159,8 @@
     const startBtn = document.getElementById('start-btn');
     const overlayText = document.getElementById('overlay-text');
     const readerDiv = document.getElementById('reader');
-    const scannerBox = document.getElementById('scanner-box');
-    const closeBtn = document.getElementById('close-btn');
+    const scanOverlay = document.getElementById('scan-overlay');
+    const closeOverlay = document.getElementById('close-overlay');
     const resizeHandle = document.querySelector(".resize-handle");
 
     let isDragging = false;
@@ -147,12 +171,11 @@
       startBtn.style.display = 'none';
       overlayText.style.display = 'block';
       readerDiv.style.display = 'block';
-      scannerBox.style.display = 'block'; // Scanner box remains visible
       initScanner();
     });
 
-    closeBtn.addEventListener('click', () => {
-      scannerBox.style.display = 'none'; // Hide scanner box when 'X' is clicked
+    closeOverlay.addEventListener('click', () => {
+      scanOverlay.style.display = 'none'; // Hide overlay when 'X' is clicked
     });
 
     function initScanner() {
@@ -164,6 +187,9 @@
         (decodedText, decodedResult) => {
           console.log("Scanned: " + decodedText);
           overlayText.textContent = `Scanned: ${decodedText}`;
+
+          // Show overlay box
+          scanOverlay.style.display = 'flex';
         },
         (errorMessage) => {
           // Optional: Handle scanning errors here
@@ -173,18 +199,18 @@
       });
     }
 
-    // ========== Dragging the Scanner Box ==========
-    scannerBox.addEventListener("mousedown", (e) => {
-      if (e.target === resizeHandle) return; // Prevent drag if resizing
+    // ========== Dragging the Overlay ==========
+    scanOverlay.addEventListener("mousedown", (e) => {
+      if (e.target === resizeHandle) return;
       isDragging = true;
-      offsetX = e.clientX - scannerBox.getBoundingClientRect().left;
-      offsetY = e.clientY - scannerBox.getBoundingClientRect().top;
+      offsetX = e.clientX - scanOverlay.getBoundingClientRect().left;
+      offsetY = e.clientY - scanOverlay.getBoundingClientRect().top;
     });
 
     document.addEventListener("mousemove", (e) => {
       if (isDragging) {
-        scannerBox.style.left = `${e.clientX - offsetX}px`;
-        scannerBox.style.top = `${e.clientY - offsetY}px`;
+        scanOverlay.style.left = `${e.clientX - offsetX}px`;
+        scanOverlay.style.top = `${e.clientY - offsetY}px`;
       }
     });
 
@@ -192,11 +218,11 @@
       isDragging = false;
     });
 
-    // ========== Resizing the Scanner Box ==========
+    // ========== Resizing the Overlay ==========
     resizeHandle.addEventListener("mousedown", (e) => {
       isResizing = true;
-      startWidth = scannerBox.offsetWidth;
-      startHeight = scannerBox.offsetHeight;
+      startWidth = scanOverlay.offsetWidth;
+      startHeight = scanOverlay.offsetHeight;
       offsetX = e.clientX;
       offsetY = e.clientY;
       e.preventDefault();
@@ -204,8 +230,8 @@
 
     document.addEventListener("mousemove", (e) => {
       if (isResizing) {
-        scannerBox.style.width = `${startWidth + (e.clientX - offsetX)}px`;
-        scannerBox.style.height = `${startHeight + (e.clientY - offsetY)}px`;
+        scanOverlay.style.width = `${startWidth + (e.clientX - offsetX)}px`;
+        scanOverlay.style.height = `${startHeight + (e.clientY - offsetY)}px`;
       }
     });
 
