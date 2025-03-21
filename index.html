@@ -27,7 +27,7 @@
       display: none;
     }
 
-    /* Force the <video> element inside html5-qrcode to be fullscreen */
+    /* Force the <video> element from html5-qrcode to be fullscreen */
     #reader video {
       width: 100vw !important;
       height: 100vh !important;
@@ -65,7 +65,7 @@
       display: none;
     }
 
-    /* Scanner box (only appears after Open Camera is pressed) */
+    /* Draggable and Resizable Overlay */
     #scanner-box {
       position: absolute;
       top: 50%;
@@ -77,42 +77,42 @@
       transform: translate(-50%, -50%);
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       z-index: 10;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
       display: none; /* Initially hidden */
+      cursor: grab;
+      touch-action: none;
     }
 
-    /* Scanned item overlay (3D-style effect) */
-    #scan-overlay {
+    /* Close button for scanner box */
+    #close-btn {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 300px;
-      height: 200px;
-      transform: translate(-50%, -50%) perspective(1000px) rotateX(5deg) rotateY(-5deg);
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 15px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(10px);
-      display: none;
-      justify-content: center;
-      align-items: center;
+      top: -10px;
+      right: -10px;
+      background: red;
+      color: white;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      font-size: 16px;
       text-align: center;
-      font-size: 20px;
+      line-height: 25px;
+      cursor: pointer;
       font-weight: bold;
-      color: #333;
-      z-index: 10;
-      animation: popIn 0.4s ease-out;
+      z-index: 15;
     }
 
-    /* Pop-in animation for the overlay */
-    @keyframes popIn {
-      0% {
-        transform: translate(-50%, -50%) scale(0.8) rotateX(10deg) rotateY(-10deg);
-        opacity: 0;
-      }
-      100% {
-        transform: translate(-50%, -50%) scale(1) rotateX(5deg) rotateY(-5deg);
-        opacity: 1;
-      }
+    /* Resizing handle */
+    .resize-handle {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      background: white;
+      border-radius: 50%;
+      bottom: -8px;
+      right: -8px;
+      cursor: nwse-resize;
+      z-index: 20;
     }
   </style>
 </head>
@@ -121,8 +121,12 @@
   <button id="start-btn">Open Camera</button>
   <div id="overlay-text">Scan a food item barcode</div>
   <div id="reader"></div>
-  <div id="scanner-box"></div> <!-- Scanner box is hidden initially -->
-  <div id="scan-overlay">🍎 Item Scanned!</div>
+
+  <!-- Scanner box (Draggable, Resizable) -->
+  <div id="scanner-box">
+    <div id="close-btn">✖</div>
+    <div class="resize-handle"></div>
+  </div>
 
   <!-- HTML5 QR Code Scanner -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -131,15 +135,24 @@
     const startBtn = document.getElementById('start-btn');
     const overlayText = document.getElementById('overlay-text');
     const readerDiv = document.getElementById('reader');
-    const scanOverlay = document.getElementById('scan-overlay');
     const scannerBox = document.getElementById('scanner-box');
+    const closeBtn = document.getElementById('close-btn');
+    const resizeHandle = document.querySelector(".resize-handle");
+
+    let isDragging = false;
+    let isResizing = false;
+    let offsetX, offsetY, startWidth, startHeight;
 
     startBtn.addEventListener('click', () => {
       startBtn.style.display = 'none';
       overlayText.style.display = 'block';
       readerDiv.style.display = 'block';
-      scannerBox.style.display = 'block'; // Scanner box appears
+      scannerBox.style.display = 'block'; // Scanner box remains visible
       initScanner();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      scannerBox.style.display = 'none'; // Hide scanner box when 'X' is clicked
     });
 
     function initScanner() {
@@ -151,18 +164,6 @@
         (decodedText, decodedResult) => {
           console.log("Scanned: " + decodedText);
           overlayText.textContent = `Scanned: ${decodedText}`;
-
-          // Show overlay box
-          scanOverlay.style.display = 'flex';
-
-          // Hide scanner box after scanning
-          scannerBox.style.display = 'none';
-
-          // Hide overlay after 3 seconds, then show scanner box again
-          setTimeout(() => {
-            scanOverlay.style.display = 'none';
-            scannerBox.style.display = 'block'; // Reset scanner box visibility
-          }, 3000);
         },
         (errorMessage) => {
           // Optional: Handle scanning errors here
@@ -171,6 +172,46 @@
         console.error(err);
       });
     }
+
+    // ========== Dragging the Scanner Box ==========
+    scannerBox.addEventListener("mousedown", (e) => {
+      if (e.target === resizeHandle) return; // Prevent drag if resizing
+      isDragging = true;
+      offsetX = e.clientX - scannerBox.getBoundingClientRect().left;
+      offsetY = e.clientY - scannerBox.getBoundingClientRect().top;
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        scannerBox.style.left = `${e.clientX - offsetX}px`;
+        scannerBox.style.top = `${e.clientY - offsetY}px`;
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    // ========== Resizing the Scanner Box ==========
+    resizeHandle.addEventListener("mousedown", (e) => {
+      isResizing = true;
+      startWidth = scannerBox.offsetWidth;
+      startHeight = scannerBox.offsetHeight;
+      offsetX = e.clientX;
+      offsetY = e.clientY;
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (isResizing) {
+        scannerBox.style.width = `${startWidth + (e.clientX - offsetX)}px`;
+        scannerBox.style.height = `${startHeight + (e.clientY - offsetY)}px`;
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isResizing = false;
+    });
   </script>
 
 </body>
