@@ -65,7 +65,7 @@
       display: none;
     }
 
-    /* Scanner box (Fixed for barcode alignment) */
+    /* Scanner box (Hidden initially, shown after clicking Open Camera) */
     #scanner-box {
       position: absolute;
       top: 50%;
@@ -79,6 +79,7 @@
       z-index: 10;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(5px);
+      display: none; /* Initially hidden */
     }
 
     /* Draggable and Resizable Overlay (After Scan) */
@@ -142,7 +143,7 @@
   <div id="overlay-text">Scan a food item barcode</div>
   <div id="reader"></div>
 
-  <!-- Scanner Box (Static for Barcode Alignment) -->
+  <!-- Scanner Box (Hidden initially) -->
   <div id="scanner-box"></div>
 
   <!-- Draggable & Resizable Overlay (Appears after scan) -->
@@ -161,6 +162,7 @@
     const readerDiv = document.getElementById('reader');
     const scanOverlay = document.getElementById('scan-overlay');
     const closeOverlay = document.getElementById('close-overlay');
+    const scannerBox = document.getElementById('scanner-box');
     const resizeHandle = document.querySelector(".resize-handle");
 
     let isDragging = false;
@@ -171,6 +173,7 @@
       startBtn.style.display = 'none';
       overlayText.style.display = 'block';
       readerDiv.style.display = 'block';
+      scannerBox.style.display = 'block'; // Scanner box now appears AFTER clicking "Open Camera"
       initScanner();
     });
 
