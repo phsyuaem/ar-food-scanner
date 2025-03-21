@@ -4,30 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>AR Food Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Ensure fullscreen layout */
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: black;
       font-family: sans-serif;
     }
 
-    /* Ensure camera fills the entire screen */
-    #reader {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      display: none;
-    }
-
-    /* Force the <video> element inside html5-qrcode to be fullscreen */
     #reader video {
       width: 100vw !important;
       height: 100vh !important;
@@ -38,22 +24,29 @@
       z-index: 1;
     }
 
-    /* Open Camera button */
+    #reader {
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      display: none;
+      z-index: 1;
+    }
+
     #start-btn {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
+      z-index: 10;
       padding: 15px 30px;
       font-size: 18px;
-      z-index: 10;
       border: none;
       background: #00ff8c;
-      color: #000;
+      color: black;
       border-radius: 10px;
     }
 
-    /* Scanner text overlay */
     #overlay-text {
       position: absolute;
       top: 10px;
@@ -65,75 +58,52 @@
       display: none;
     }
 
-    /* Scanner box (No blur now, just a simple alignment box) */
     #scanner-box {
       position: absolute;
       top: 50%;
       left: 50%;
       width: 250px;
       height: 100px;
+      transform: translate(-50%, -50%);
       border: 3px solid white;
       border-radius: 10px;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
       z-index: 10;
-      background: transparent; /* No blur effect */
       display: none;
     }
 
-    /* Draggable and Resizable Overlay (After Scan) */
     #scan-overlay {
       position: absolute;
       top: 60%;
       left: 50%;
-      width: 200px;
-      height: 150px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      width: 300px;
+      height: auto;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
       transform: translate(-50%, -50%);
       display: none;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-      color: black;
       z-index: 20;
-      cursor: grab;
-      touch-action: none;
-      transition: transform 0.1s ease-out; /* Smooth drag effect */
     }
 
-    /* Close button for overlay */
     #close-overlay {
       position: absolute;
       top: -10px;
       right: -10px;
       background: red;
       color: white;
-      width: 30px;
-      height: 30px;
+      width: 25px;
+      height: 25px;
       border-radius: 50%;
-      font-size: 16px;
       text-align: center;
-      line-height: 30px;
-      cursor: pointer;
       font-weight: bold;
-      z-index: 25;
+      line-height: 25px;
+      cursor: pointer;
     }
 
-    /* Resizing handle */
-    .resize-handle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: black;
-      border-radius: 50%;
-      bottom: -10px;
-      right: -10px;
-      cursor: nwse-resize;
-      z-index: 25;
+    canvas {
+      max-width: 100%;
+      height: auto;
     }
   </style>
 </head>
@@ -142,145 +112,115 @@
   <button id="start-btn">Open Camera</button>
   <div id="overlay-text">Scan a food item barcode</div>
   <div id="reader"></div>
-
-  <!-- Scanner Box (Hidden initially) -->
   <div id="scanner-box"></div>
 
-  <!-- Draggable & Resizable Overlay (Appears after scan) -->
   <div id="scan-overlay">
     <div id="close-overlay">✖</div>
-    🍎 Scanned Item
-    <div class="resize-handle"></div>
+    <canvas id="nutrition-chart" width="300" height="200"></canvas>
   </div>
 
-  <!-- HTML5 QR Code Scanner -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    const startBtn = document.getElementById('start-btn');
+    const overlayText = document.getElementById('overlay-text');
+    const readerDiv = document.getElementById('reader');
+    const scannerBox = document.getElementById('scanner-box');
+    const scanOverlay = document.getElementById('scan-overlay');
+    const closeOverlay = document.getElementById('close-overlay');
+    const chartCanvas = document.getElementById('nutrition-chart');
+    let chartInstance = null;
 
-<script>
-  const startBtn = document.getElementById('start-btn');
-  const overlayText = document.getElementById('overlay-text');
-  const readerDiv = document.getElementById('reader');
-  const scanOverlay = document.getElementById('scan-overlay');
-  const closeOverlay = document.getElementById('close-overlay');
-  const scannerBox = document.getElementById('scanner-box');
-  const resizeHandle = document.querySelector(".resize-handle");
+    const recommendedLimits = {
+      'saturated-fat': 2.0,
+      'sugars': 10.0,
+      'salt': 0.5,
+      'fat': 15.0
+    };
 
-  let isDragging = false;
-  let dragStartX, dragStartY;
-  let dragOffsetX, dragOffsetY;
-  let startLeft, startTop;
-  const dragThreshold = 10; // Minimum move in px to start drag
-
-  let isResizing = false;
-  let startWidth, startHeight;
-
-  startBtn.addEventListener('click', () => {
-    startBtn.style.display = 'none';
-    overlayText.style.display = 'block';
-    readerDiv.style.display = 'block';
-    scannerBox.style.display = 'block';
-    initScanner();
-  });
-
-  closeOverlay.addEventListener('click', () => {
-    scanOverlay.style.display = 'none';
-  });
-
-  function initScanner() {
-    const html5QrCode = new Html5Qrcode("reader");
-
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10 },
-      (decodedText, decodedResult) => {
-        console.log("Scanned: " + decodedText);
-        overlayText.textContent = `Scanned: ${decodedText}`;
-        scanOverlay.style.display = 'flex';
-        centerOverlay(); // Reset overlay to center on new scan
-      },
-      (errorMessage) => {}
-    ).catch(err => {
-      console.error(err);
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = 'none';
+      overlayText.style.display = 'block';
+      readerDiv.style.display = 'block';
+      scannerBox.style.display = 'block';
+      initScanner();
     });
-  }
 
-  function centerOverlay() {
-    scanOverlay.style.top = "60%";
-    scanOverlay.style.left = "50%";
-    scanOverlay.style.transform = "translate(-50%, -50%)";
-  }
+    closeOverlay.addEventListener('click', () => {
+      scanOverlay.style.display = 'none';
+    });
 
-  // ========== Improved Dragging ==========
-  scanOverlay.addEventListener("touchstart", (e) => {
-    if (e.target === resizeHandle) return;
-    const touch = e.touches[0];
-    dragStartX = touch.clientX;
-    dragStartY = touch.clientY;
-    startLeft = scanOverlay.offsetLeft;
-    startTop = scanOverlay.offsetTop;
-    dragOffsetX = touch.clientX - startLeft;
-    dragOffsetY = touch.clientY - startTop;
-    isDragging = false;
-  });
+    function initScanner() {
+      const html5QrCode = new Html5Qrcode("reader");
 
-  scanOverlay.addEventListener("touchmove", (e) => {
-    const touch = e.touches[0];
-    const moveX = touch.clientX - dragStartX;
-    const moveY = touch.clientY - dragStartY;
-
-    // Start dragging only after moving threshold
-    if (!isDragging && Math.sqrt(moveX ** 2 + moveY ** 2) > dragThreshold) {
-      isDragging = true;
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10 },
+        async (decodedText, decodedResult) => {
+          overlayText.textContent = `Scanned: ${decodedText}`;
+          html5QrCode.stop(); // Stop scanning after 1 result
+          await fetchAndShowNutrition(decodedText);
+        },
+        (errorMessage) => {}
+      ).catch(err => console.error(err));
     }
 
-    if (isDragging) {
-      let newLeft = touch.clientX - dragOffsetX;
-      let newTop = touch.clientY - dragOffsetY;
+    async function fetchAndShowNutrition(barcode) {
+      const apiUrl = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
 
-      // Restrict within screen bounds
-      const maxLeft = window.innerWidth - scanOverlay.offsetWidth;
-      const maxTop = window.innerHeight - scanOverlay.offsetHeight;
+      try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        const nutriments = data.product.nutriments;
 
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
+        const labels = [];
+        const productData = [];
+        const limitData = [];
 
-      scanOverlay.style.left = `${newLeft}px`;
-      scanOverlay.style.top = `${newTop}px`;
-      scanOverlay.style.transform = "none";
+        for (const nutrient in recommendedLimits) {
+          const key = `${nutrient}_100g`;
+          const actual = parseFloat(nutriments[key]) || 0;
+          const limit = recommendedLimits[nutrient];
+          labels.push(nutrient.replace('-', ' ').toUpperCase());
+          productData.push(actual);
+          limitData.push(limit);
+        }
+
+        // Create or update chart
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(chartCanvas, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'In Product (per 100g)',
+                data: productData,
+                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+              },
+              {
+                label: 'Recommended Max',
+                data: limitData,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'top' },
+              title: { display: true, text: data.product.product_name || 'Scanned Food' }
+            }
+          }
+        });
+
+        scanOverlay.style.display = 'block';
+
+      } catch (err) {
+        console.error("Error fetching nutrition info", err);
+        alert("Failed to get product info. Please try again.");
+      }
     }
-  });
-
-  scanOverlay.addEventListener("touchend", () => {
-    isDragging = false;
-  });
-
-  // ========== Touch Resizing ==========
-  resizeHandle.addEventListener("touchstart", (e) => {
-    isResizing = true;
-    const touch = e.touches[0];
-    startWidth = scanOverlay.offsetWidth;
-    startHeight = scanOverlay.offsetHeight;
-    dragStartX = touch.clientX;
-    dragStartY = touch.clientY;
-    e.preventDefault();
-  });
-
-  document.addEventListener("touchmove", (e) => {
-    if (!isResizing) return;
-    const touch = e.touches[0];
-    const newWidth = startWidth + (touch.clientX - dragStartX);
-    const newHeight = startHeight + (touch.clientY - dragStartY);
-
-    // Set minimum size limits
-    scanOverlay.style.width = `${Math.max(100, newWidth)}px`;
-    scanOverlay.style.height = `${Math.max(80, newHeight)}px`;
-  });
-
-  document.addEventListener("touchend", () => {
-    isResizing = false;
-  });
-</script>
-
-
+  </script>
 </body>
 </html>
