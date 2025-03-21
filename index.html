@@ -156,87 +156,131 @@
   <!-- HTML5 QR Code Scanner -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <script>
-    const startBtn = document.getElementById('start-btn');
-    const overlayText = document.getElementById('overlay-text');
-    const readerDiv = document.getElementById('reader');
-    const scanOverlay = document.getElementById('scan-overlay');
-    const closeOverlay = document.getElementById('close-overlay');
-    const scannerBox = document.getElementById('scanner-box');
-    const resizeHandle = document.querySelector(".resize-handle");
+<script>
+  const startBtn = document.getElementById('start-btn');
+  const overlayText = document.getElementById('overlay-text');
+  const readerDiv = document.getElementById('reader');
+  const scanOverlay = document.getElementById('scan-overlay');
+  const closeOverlay = document.getElementById('close-overlay');
+  const scannerBox = document.getElementById('scanner-box');
+  const resizeHandle = document.querySelector(".resize-handle");
 
-    let isDragging = false;
-    let isResizing = false;
-    let offsetX, offsetY, startWidth, startHeight;
+  let isDragging = false;
+  let dragStartX, dragStartY;
+  let dragOffsetX, dragOffsetY;
+  let startLeft, startTop;
+  const dragThreshold = 10; // Minimum move in px to start drag
 
-    startBtn.addEventListener('click', () => {
-      startBtn.style.display = 'none';
-      overlayText.style.display = 'block';
-      readerDiv.style.display = 'block';
-      scannerBox.style.display = 'block';
-      initScanner();
+  let isResizing = false;
+  let startWidth, startHeight;
+
+  startBtn.addEventListener('click', () => {
+    startBtn.style.display = 'none';
+    overlayText.style.display = 'block';
+    readerDiv.style.display = 'block';
+    scannerBox.style.display = 'block';
+    initScanner();
+  });
+
+  closeOverlay.addEventListener('click', () => {
+    scanOverlay.style.display = 'none';
+  });
+
+  function initScanner() {
+    const html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10 },
+      (decodedText, decodedResult) => {
+        console.log("Scanned: " + decodedText);
+        overlayText.textContent = `Scanned: ${decodedText}`;
+        scanOverlay.style.display = 'flex';
+        centerOverlay(); // Reset overlay to center on new scan
+      },
+      (errorMessage) => {}
+    ).catch(err => {
+      console.error(err);
     });
+  }
 
-    closeOverlay.addEventListener('click', () => {
-      scanOverlay.style.display = 'none';
-    });
+  function centerOverlay() {
+    scanOverlay.style.top = "60%";
+    scanOverlay.style.left = "50%";
+    scanOverlay.style.transform = "translate(-50%, -50%)";
+  }
 
-    function initScanner() {
-      const html5QrCode = new Html5Qrcode("reader");
+  // ========== Improved Dragging ==========
+  scanOverlay.addEventListener("touchstart", (e) => {
+    if (e.target === resizeHandle) return;
+    const touch = e.touches[0];
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    startLeft = scanOverlay.offsetLeft;
+    startTop = scanOverlay.offsetTop;
+    dragOffsetX = touch.clientX - startLeft;
+    dragOffsetY = touch.clientY - startTop;
+    isDragging = false;
+  });
 
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10 },
-        (decodedText, decodedResult) => {
-          console.log("Scanned: " + decodedText);
-          overlayText.textContent = `Scanned: ${decodedText}`;
-          scanOverlay.style.display = 'flex';
-        },
-        (errorMessage) => {}
-      ).catch(err => {
-        console.error(err);
-      });
-    }
+  scanOverlay.addEventListener("touchmove", (e) => {
+    const touch = e.touches[0];
+    const moveX = touch.clientX - dragStartX;
+    const moveY = touch.clientY - dragStartY;
 
-    // ========== Improved Dragging ==========
-    scanOverlay.addEventListener("touchstart", startDrag);
-    scanOverlay.addEventListener("mousedown", startDrag);
-
-    function startDrag(e) {
-      e.preventDefault();
+    // Start dragging only after moving threshold
+    if (!isDragging && Math.sqrt(moveX ** 2 + moveY ** 2) > dragThreshold) {
       isDragging = true;
-      offsetX = (e.touches ? e.touches[0].clientX : e.clientX) - scanOverlay.getBoundingClientRect().left;
-      offsetY = (e.touches ? e.touches[0].clientY : e.clientY) - scanOverlay.getBoundingClientRect().top;
     }
 
-    document.addEventListener("touchmove", dragOverlay);
-    document.addEventListener("mousemove", dragOverlay);
+    if (isDragging) {
+      let newLeft = touch.clientX - dragOffsetX;
+      let newTop = touch.clientY - dragOffsetY;
 
-    function dragOverlay(e) {
-      if (!isDragging) return;
-      scanOverlay.style.transform = `translate(${(e.touches ? e.touches[0].clientX : e.clientX) - offsetX}px, ${(e.touches ? e.touches[0].clientY : e.clientY) - offsetY}px)`;
+      // Restrict within screen bounds
+      const maxLeft = window.innerWidth - scanOverlay.offsetWidth;
+      const maxTop = window.innerHeight - scanOverlay.offsetHeight;
+
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+
+      scanOverlay.style.left = `${newLeft}px`;
+      scanOverlay.style.top = `${newTop}px`;
+      scanOverlay.style.transform = "none";
     }
+  });
 
-    document.addEventListener("touchend", () => isDragging = false);
-    document.addEventListener("mouseup", () => isDragging = false);
+  scanOverlay.addEventListener("touchend", () => {
+    isDragging = false;
+  });
 
-    // ========== Pinch Resizing ==========
-    resizeHandle.addEventListener("touchstart", (e) => {
-      isResizing = true;
-      startWidth = scanOverlay.offsetWidth;
-      startHeight = scanOverlay.offsetHeight;
-      offsetX = e.touches[0].clientX;
-      offsetY = e.touches[0].clientY;
-    });
+  // ========== Touch Resizing ==========
+  resizeHandle.addEventListener("touchstart", (e) => {
+    isResizing = true;
+    const touch = e.touches[0];
+    startWidth = scanOverlay.offsetWidth;
+    startHeight = scanOverlay.offsetHeight;
+    dragStartX = touch.clientX;
+    dragStartY = touch.clientY;
+    e.preventDefault();
+  });
 
-    document.addEventListener("touchmove", (e) => {
-      if (!isResizing) return;
-      scanOverlay.style.width = `${startWidth + (e.touches[0].clientX - offsetX)}px`;
-      scanOverlay.style.height = `${startHeight + (e.touches[0].clientY - offsetY)}px`;
-    });
+  document.addEventListener("touchmove", (e) => {
+    if (!isResizing) return;
+    const touch = e.touches[0];
+    const newWidth = startWidth + (touch.clientX - dragStartX);
+    const newHeight = startHeight + (touch.clientY - dragStartY);
 
-    document.addEventListener("touchend", () => isResizing = false);
-  </script>
+    // Set minimum size limits
+    scanOverlay.style.width = `${Math.max(100, newWidth)}px`;
+    scanOverlay.style.height = `${Math.max(80, newHeight)}px`;
+  });
+
+  document.addEventListener("touchend", () => {
+    isResizing = false;
+  });
+</script>
+
 
 </body>
 </html>
