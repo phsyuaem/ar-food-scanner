@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>AR Food Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <button id="start-btn">Open Camera</button>
+  <div id="overlay-text">Scan a food item barcode</div>
+  <div id="reader"></div>
+  <div id="scanner-box"></div>
+
+  <div id="scan-overlay">
+    <div id="close-overlay">✖</div>
+    <h3 id="product-name">Loading...</h3>
+    <div id="nutrition-container"></div>
+    <div class="resize-handle"></div>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="script.js"></script>
+</body>
+</html>
