@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR Food Scanner</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      font-family: sans-serif;
+    }
+    #start-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 15px 30px;
+      font-size: 18px;
+      z-index: 10;
+      border: none;
+      background: #00ff8c;
+      color: #000;
+      border-radius: 10px;
+    }
+    #overlay-text {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-size: 20px;
+      z-index: 10;
+      display: none;
+    }
+    #reader {
+      width: 100vw;
+      height: 100vh;
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+
+<button id="start-btn">Open Camera</button>
+<div id="overlay-text">Scan a food item barcode</div>
+<div id="reader"></div>
+
+<!-- HTML5 QR Code -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<!-- Three.js for 3D rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+<script>
+  const startBtn = document.getElementById('start-btn');
+  const overlayText = document.getElementById('overlay-text');
+  const readerDiv = document.getElementById('reader');
+
+  startBtn.addEventListener('click', () => {
+    startBtn.style.display = 'none';
+    overlayText.style.display = 'block';
+    readerDiv.style.display = 'block';
+    initScanner();
+    init3DBox();
+  });
+
+  function initScanner() {
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      (decodedText, decodedResult) => {
+        console.log("Scanned: " + decodedText);
+        overlayText.textContent = `Scanned: ${decodedText}`;
+        // You can now call OpenFoodFacts API here using the barcode
+        // For demo, we just show the box
+        show3DBox = true;
+      },
+      (errorMessage) => {
+        // Ignore scan errors for now
+      }
+    ).catch(err => {
+      console.error(err);
+    });
+  }
+
+  // ========== Three.js 3D Box Overlay ==========
+  let show3DBox = false;
+
+  function init3DBox() {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    camera.position.z = 3;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (show3DBox) {
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+  }
+</script>
+
+</body>
+</html>
