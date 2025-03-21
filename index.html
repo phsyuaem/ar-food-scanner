@@ -14,23 +14,11 @@
       font-family: sans-serif;
     }
 
-    #reader video {
-      width: 100vw !important;
-      height: 100vh !important;
-      object-fit: cover !important;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-
     #reader {
-      width: 100vw;
-      height: 100vh;
+      width: 100vw; height: 100vh;
       position: fixed;
-      top: 0;
-      left: 0;
-      display: none;
+      top: 0; left: 0;
+      display: block;
       z-index: 1;
     }
 
@@ -66,7 +54,6 @@
       height: 100px;
       transform: translate(-50%, -50%);
       border: 3px solid white;
-      border-radius: 10px;
       z-index: 10;
       display: none;
     }
@@ -75,9 +62,8 @@
       position: absolute;
       top: 60%;
       left: 50%;
-      width: 300px;
-      height: auto;
-      padding: 10px;
+      width: 90%;
+      padding: 15px;
       background: rgba(255, 255, 255, 0.95);
       border-radius: 12px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -101,9 +87,32 @@
       cursor: pointer;
     }
 
-    canvas {
-      max-width: 100%;
-      height: auto;
+    .nutrition-bar {
+      width: 100%;
+      height: 20px;
+      background: lightgray;
+      border: 2px solid black;
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .nutrition-fill {
+      height: 100%;
+      position: absolute;
+    }
+
+    .nutrient-label {
+      font-size: 14px;
+      color: black;
+      position: absolute;
+      left: 5px;
+      top: -18px;
+    }
+
+    .bar-section {
+      position: absolute;
+      height: 100%;
+      border-left: 2px solid black;
     }
   </style>
 </head>
@@ -116,7 +125,8 @@
 
   <div id="scan-overlay">
     <div id="close-overlay">✖</div>
-    <canvas id="nutrition-chart" width="300" height="200"></canvas>
+    <h3 id="product-name">Loading...</h3>
+    <div id="nutrition-container"></div>
   </div>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -127,8 +137,8 @@
     const scannerBox = document.getElementById('scanner-box');
     const scanOverlay = document.getElementById('scan-overlay');
     const closeOverlay = document.getElementById('close-overlay');
-    const chartCanvas = document.getElementById('nutrition-chart');
-    let chartInstance = null;
+    const productName = document.getElementById('product-name');
+    const nutritionContainer = document.getElementById('nutrition-container');
 
     const recommendedLimits = {
       'saturated-fat': 2.0,
@@ -155,9 +165,8 @@
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10 },
-        async (decodedText, decodedResult) => {
+        async (decodedText) => {
           overlayText.textContent = `Scanned: ${decodedText}`;
-          html5QrCode.stop(); // Stop scanning after 1 result
           await fetchAndShowNutrition(decodedText);
         },
         (errorMessage) => {}
@@ -170,55 +179,60 @@
       try {
         const res = await fetch(apiUrl);
         const data = await res.json();
-        const nutriments = data.product.nutriments;
 
-        const labels = [];
-        const productData = [];
-        const limitData = [];
+        if (!data.product) throw new Error("Product not found");
+
+        const nutriments = data.product.nutriments;
+        productName.innerText = data.product.product_name || "Unknown Product";
+        nutritionContainer.innerHTML = '';
 
         for (const nutrient in recommendedLimits) {
           const key = `${nutrient}_100g`;
           const actual = parseFloat(nutriments[key]) || 0;
           const limit = recommendedLimits[nutrient];
-          labels.push(nutrient.replace('-', ' ').toUpperCase());
-          productData.push(actual);
-          limitData.push(limit);
+
+          // Create bar visualization
+          const bar = document.createElement("div");
+          bar.className = "nutrition-bar";
+
+          const fill = document.createElement("div");
+          fill.className = "nutrition-fill";
+          fill.style.width = `${(actual / limit) * 100}%`;
+          fill.style.background = actual > limit ? "red" : "green";
+
+          const label = document.createElement("div");
+          label.className = "nutrient-label";
+          label.innerText = `${nutrient.replace('-', ' ')}: ${actual}g`;
+
+          // Sections for limits
+          const section1 = document.createElement("div");
+          section1.className = "bar-section";
+          section1.style.left = "33%";
+          section1.innerText = "recommended";
+
+          const section2 = document.createElement("div");
+          section2.className = "bar-section";
+          section2.style.left = "66%";
+          section2.innerText = "harmful but okay";
+
+          const section3 = document.createElement("div");
+          section3.className = "bar-section";
+          section3.style.left = "100%";
+          section3.innerText = "too much";
+
+          bar.appendChild(fill);
+          bar.appendChild(section1);
+          bar.appendChild(section2);
+          bar.appendChild(section3);
+          nutritionContainer.appendChild(label);
+          nutritionContainer.appendChild(bar);
         }
-
-        // Create or update chart
-        if (chartInstance) chartInstance.destroy();
-
-        chartInstance = new Chart(chartCanvas, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'In Product (per 100g)',
-                data: productData,
-                backgroundColor: 'rgba(255, 99, 132, 0.7)'
-              },
-              {
-                label: 'Recommended Max',
-                data: limitData,
-                backgroundColor: 'rgba(75, 192, 192, 0.5)'
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'top' },
-              title: { display: true, text: data.product.product_name || 'Scanned Food' }
-            }
-          }
-        });
 
         scanOverlay.style.display = 'block';
 
       } catch (err) {
-        console.error("Error fetching nutrition info", err);
-        alert("Failed to get product info. Please try again.");
+        console.error("Error fetching data:", err);
+        alert("Could not retrieve nutrition info.");
       }
     }
   </script>
