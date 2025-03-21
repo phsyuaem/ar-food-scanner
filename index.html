@@ -102,6 +102,7 @@
       z-index: 20;
       cursor: grab;
       touch-action: none;
+      transition: transform 0.1s ease-out; /* Smooth drag effect */
     }
 
     /* Close button for overlay */
@@ -111,12 +112,12 @@
       right: -10px;
       background: red;
       color: white;
-      width: 25px;
-      height: 25px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       font-size: 16px;
       text-align: center;
-      line-height: 25px;
+      line-height: 30px;
       cursor: pointer;
       font-weight: bold;
       z-index: 25;
@@ -125,12 +126,12 @@
     /* Resizing handle */
     .resize-handle {
       position: absolute;
-      width: 15px;
-      height: 15px;
+      width: 20px;
+      height: 20px;
       background: black;
       border-radius: 50%;
-      bottom: -8px;
-      right: -8px;
+      bottom: -10px;
+      right: -10px;
       cursor: nwse-resize;
       z-index: 25;
     }
@@ -172,12 +173,12 @@
       startBtn.style.display = 'none';
       overlayText.style.display = 'block';
       readerDiv.style.display = 'block';
-      scannerBox.style.display = 'block'; // Scanner box now appears AFTER clicking "Open Camera"
+      scannerBox.style.display = 'block';
       initScanner();
     });
 
     closeOverlay.addEventListener('click', () => {
-      scanOverlay.style.display = 'none'; // Hide overlay when 'X' is clicked
+      scanOverlay.style.display = 'none';
     });
 
     function initScanner() {
@@ -189,19 +190,15 @@
         (decodedText, decodedResult) => {
           console.log("Scanned: " + decodedText);
           overlayText.textContent = `Scanned: ${decodedText}`;
-
-          // Show overlay box
           scanOverlay.style.display = 'flex';
         },
-        (errorMessage) => {
-          // Optional: Handle scanning errors here
-        }
+        (errorMessage) => {}
       ).catch(err => {
         console.error(err);
       });
     }
 
-    // ========== Dragging the Overlay (Touch & Mouse) ==========
+    // ========== Improved Dragging ==========
     scanOverlay.addEventListener("touchstart", startDrag);
     scanOverlay.addEventListener("mousedown", startDrag);
 
@@ -217,37 +214,28 @@
 
     function dragOverlay(e) {
       if (!isDragging) return;
-      scanOverlay.style.left = `${(e.touches ? e.touches[0].clientX : e.clientX) - offsetX}px`;
-      scanOverlay.style.top = `${(e.touches ? e.touches[0].clientY : e.clientY) - offsetY}px`;
+      scanOverlay.style.transform = `translate(${(e.touches ? e.touches[0].clientX : e.clientX) - offsetX}px, ${(e.touches ? e.touches[0].clientY : e.clientY) - offsetY}px)`;
     }
 
     document.addEventListener("touchend", () => isDragging = false);
     document.addEventListener("mouseup", () => isDragging = false);
 
-    // ========== Resizing the Overlay ==========
-    resizeHandle.addEventListener("touchstart", startResize);
-    resizeHandle.addEventListener("mousedown", startResize);
-
-    function startResize(e) {
+    // ========== Pinch Resizing ==========
+    resizeHandle.addEventListener("touchstart", (e) => {
       isResizing = true;
       startWidth = scanOverlay.offsetWidth;
       startHeight = scanOverlay.offsetHeight;
-      offsetX = e.touches ? e.touches[0].clientX : e.clientX;
-      offsetY = e.touches ? e.touches[0].clientY : e.clientY;
-      e.preventDefault();
-    }
+      offsetX = e.touches[0].clientX;
+      offsetY = e.touches[0].clientY;
+    });
 
-    document.addEventListener("touchmove", resizeOverlay);
-    document.addEventListener("mousemove", resizeOverlay);
-
-    function resizeOverlay(e) {
+    document.addEventListener("touchmove", (e) => {
       if (!isResizing) return;
-      scanOverlay.style.width = `${startWidth + ((e.touches ? e.touches[0].clientX : e.clientX) - offsetX)}px`;
-      scanOverlay.style.height = `${startHeight + ((e.touches ? e.touches[0].clientY : e.clientY) - offsetY)}px`;
-    }
+      scanOverlay.style.width = `${startWidth + (e.touches[0].clientX - offsetX)}px`;
+      scanOverlay.style.height = `${startHeight + (e.touches[0].clientY - offsetY)}px`;
+    });
 
     document.addEventListener("touchend", () => isResizing = false);
-    document.addEventListener("mouseup", () => isResizing = false);
   </script>
 
 </body>
