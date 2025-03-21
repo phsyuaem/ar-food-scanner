@@ -3,18 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const overlayText = document.getElementById('overlay-text');
     const readerDiv = document.getElementById('reader');
     const scannerBox = document.getElementById('scanner-box');
-    const scanOverlay = document.getElementById('scan-overlay');
-    const closeOverlay = document.getElementById('close-overlay');
+    const overlayBox = document.getElementById('overlay-box');
+    const closeBtn = document.getElementById('close-btn');
     const resizeHandle = document.querySelector(".resize-handle");
     const productName = document.getElementById('product-name');
     const nutritionContainer = document.getElementById('nutrition-container');
-
-    const recommendedLimits = {
-        'saturated-fat': 2.0,
-        'sugars': 10.0,
-        'salt': 0.5,
-        'fat': 15.0
-    };
 
     startBtn.addEventListener('click', () => {
         startBtn.style.display = 'none';
@@ -24,8 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
         initScanner();
     });
 
-    closeOverlay.addEventListener('click', () => {
-        scanOverlay.style.display = 'none';
+    closeBtn.addEventListener('click', () => {
+        overlayBox.style.display = 'none';
     });
 
     function initScanner() {
@@ -36,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
             { fps: 10 },
             async (decodedText) => {
                 overlayText.textContent = `Scanned: ${decodedText}`;
+                overlayBox.style.display = "block";
                 await fetchAndShowNutrition(decodedText);
             },
             (errorMessage) => {}
@@ -54,12 +48,17 @@ document.addEventListener("DOMContentLoaded", () => {
             productName.innerText = data.product.product_name || "Unknown Product";
             nutritionContainer.innerHTML = '';
 
-            for (const nutrient in recommendedLimits) {
-                const key = `${nutrient}_100g`;
-                const actual = parseFloat(data.product.nutriments[key]) || 0;
-                const limit = recommendedLimits[nutrient];
+            // Populate nutrition bars
+            Object.keys(data.product.nutriments).forEach((nutrient) => {
+                if (nutrient.includes("_100g")) {
+                    const value = data.product.nutriments[nutrient];
+                    const label = nutrient.replace("_100g", "").replace("-", " ");
+                    nutritionContainer.innerHTML += `<div class="nutrition-label">${label}: ${value}g</div>`;
+                }
+            });
 
-                const barContainer = document.createElement("div");
-                barContainer.className
-::contentReference[oaicite:0]{index=0}
- 
+        } catch (err) {
+            alert("Could not retrieve nutrition info.");
+        }
+    }
+});
